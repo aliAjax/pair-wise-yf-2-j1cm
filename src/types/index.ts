@@ -4,6 +4,7 @@ export type ShadeLevelType = 'none' | 'partial' | 'full';
 export type NoiseLevelType = 'quiet' | 'moderate' | 'noisy';
 export type StayDurationType = 'short' | 'medium' | 'long' | 'verylong';
 export type TimePeriodType = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
+export type InspectionStatusType = 'normal' | 'needs-repair' | 'decommissioned';
 
 export interface BenchExperience {
   id: string;
@@ -28,6 +29,9 @@ export interface Bench {
   rating: number;
   review: string;
   experiences: BenchExperience[];
+  lastInspectionDate?: string;
+  nextInspectionDue?: string;
+  inspectionStatus?: InspectionStatusType;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,4 +88,10 @@ export const TIME_PERIOD_ICONS: Record<TimePeriodType, string> = {
   afternoon: 'cloud-sun',
   evening: 'sunset',
   night: 'moon',
+};
+
+export const INSPECTION_STATUS_LABELS: Record<InspectionStatusType, string> = {
+  normal: '正常',
+  'needs-repair': '待维修',
+  decommissioned: '停用',
 };

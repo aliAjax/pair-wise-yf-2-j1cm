@@ -31,6 +31,7 @@ import type {
 } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { generateId } from '@/utils/comfort';
+import { getInspectionStatus } from '@/utils/inspection';
 
 export default function AddEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,7 @@ export default function AddEditPage() {
 
   const { getBenchById, addBench, updateBench, initialize, initialized, addExperience, updateExperience, deleteExperience } = useBenchStore();
   const existingBench = id ? getBenchById(id) : undefined;
+  const isDecommissioned = !!existingBench && getInspectionStatus(existingBench) === 'decommissioned';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -88,6 +90,8 @@ export default function AddEditPage() {
   };
 
   const handleAddExperience = () => {
+    // 停用期间不能新增体验记录
+    if (isDecommissioned) return;
     const newExp: BenchExperience = {
       id: generateId(),
       benchId: id || 'temp',
@@ -387,14 +391,22 @@ export default function AddEditPage() {
               <h2 className="font-serif text-lg font-semibold text-deep-brown">
                 分时段体验
               </h2>
-              <button
-                type="button"
-                onClick={handleAddExperience}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                添加时段
-              </button>
+              <div className="flex items-center gap-3">
+                {isDecommissioned && (
+                  <span className="text-xs text-ink-light">
+                    长椅已停用，停用期间不能新增体验
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleAddExperience}
+                  disabled={isDecommissioned}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加时段
+                </button>
+              </div>
             </div>
 
             {experiences.length > 0 ? (
@@ -469,7 +481,9 @@ export default function AddEditPage() {
                   还没有添加时段体验
                 </p>
                 <p className="text-xs text-ink-light/60 mt-1">
-                  可以记录早晨、中午、下午等不同时段的感受
+                  {isDecommissioned
+                    ? '长椅已停用，停用期间不能新增体验'
+                    : '可以记录早晨、中午、下午等不同时段的感受'}
                 </p>
               </div>
             )}

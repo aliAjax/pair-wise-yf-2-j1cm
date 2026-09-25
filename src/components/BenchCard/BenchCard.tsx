@@ -1,9 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
+import { MapPin, Clock, Volume2, Sun, Armchair, ClipboardCheck, Wrench, Ban, AlertTriangle } from 'lucide-react';
 import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import {
+  EFFECTIVE_INSPECTION_STATUS_LABELS,
+  getInspectionStatus,
+  isInspectionOverdue,
+} from '@/utils/inspection';
 
 interface BenchCardProps {
   bench: Bench;
@@ -16,6 +21,10 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
 
+  const inspectionStatus = getInspectionStatus(bench);
+  const overdue = isInspectionOverdue(bench);
+  const isDecommissioned = inspectionStatus === 'decommissioned';
+
   const staggerClass = `stagger-${(index % 6) + 1}`;
 
   return (
@@ -23,13 +32,15 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
       onClick={() => navigate(`/bench/${bench.id}`)}
       className={`paper-texture rounded-xl shadow-card card-hover cursor-pointer overflow-hidden fade-in opacity-0 ${staggerClass}`}
     >
-      <div className="h-36 bg-gradient-to-br from-warm-cream to-warm-beige relative overflow-hidden">
+      <div className={`h-36 bg-gradient-to-br from-warm-cream to-warm-beige relative overflow-hidden ${
+        isDecommissioned ? 'grayscale' : ''
+      }`}>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-20 h-20 rounded-full bg-moss-green/10 flex items-center justify-center">
             <Armchair className="w-10 h-10 text-moss-green/50" />
           </div>
         </div>
-        
+
         <div className="absolute top-3 right-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs font-medium">
           <span className={comfortColor}>{comfortLevel}</span>
           <span className="text-ink-light ml-1">{comfortScore}</span>
@@ -37,6 +48,39 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
 
         <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
           {MATERIAL_LABELS[bench.material]}
+        </div>
+
+        <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 flex-wrap">
+          {inspectionStatus === 'pending' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/85 backdrop-blur-sm rounded-full text-xs font-medium text-ochre">
+              <ClipboardCheck className="w-3 h-3" />
+              {EFFECTIVE_INSPECTION_STATUS_LABELS.pending}
+            </span>
+          )}
+          {inspectionStatus === 'needs-repair' && (
+            <>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/85 backdrop-blur-sm rounded-full text-xs font-medium text-red-500">
+                <Wrench className="w-3 h-3" />
+                {EFFECTIVE_INSPECTION_STATUS_LABELS['needs-repair']}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500 text-white rounded-full text-xs font-medium">
+                <AlertTriangle className="w-3 h-3" />
+                需要处理
+              </span>
+            </>
+          )}
+          {isDecommissioned && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/85 backdrop-blur-sm rounded-full text-xs font-medium text-ink-light">
+              <Ban className="w-3 h-3" />
+              {EFFECTIVE_INSPECTION_STATUS_LABELS.decommissioned}
+            </span>
+          )}
+          {overdue && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/90 backdrop-blur-sm rounded-full text-xs font-medium text-white ml-auto">
+              <AlertTriangle className="w-3 h-3" />
+              已逾期
+            </span>
+          )}
         </div>
       </div>
 

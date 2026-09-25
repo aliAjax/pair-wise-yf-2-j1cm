@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useBenchStore } from '@/store/useBenchStore';
+import { getInspectionSortRank } from '@/utils/inspection';
 import FilterBar from '@/components/FilterBar/FilterBar';
 import BenchCard from '@/components/BenchCard/BenchCard';
 import { Armchair } from 'lucide-react';
@@ -7,6 +8,10 @@ import { Armchair } from 'lucide-react';
 export default function ListPage() {
   const { benches, getFilteredBenches, initialize, initialized } = useBenchStore();
   const filteredBenches = getFilteredBenches();
+  // 正常 / 待巡检优先展示，待维修靠后，停用垫底（组内保持原有顺序）
+  const sortedBenches = [...filteredBenches].sort(
+    (a, b) => getInspectionSortRank(a) - getInspectionSortRank(b)
+  );
 
   useEffect(() => {
     if (!initialized) {
@@ -27,9 +32,9 @@ export default function ListPage() {
 
       <FilterBar />
 
-      {filteredBenches.length > 0 ? (
+      {sortedBenches.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredBenches.map((bench, index) => (
+          {sortedBenches.map((bench, index) => (
             <BenchCard key={bench.id} bench={bench} index={index} />
           ))}
         </div>
