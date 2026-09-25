@@ -3,7 +3,9 @@ import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
 import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import InspectionBadge from '@/components/InspectionBadge/InspectionBadge';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getInspectionStatus } from '@/utils/inspection';
 
 interface BenchCardProps {
   bench: Bench;
@@ -15,13 +17,16 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+  const isDecommissioned = getInspectionStatus(bench) === 'decommissioned';
 
   const staggerClass = `stagger-${(index % 6) + 1}`;
 
   return (
     <div
       onClick={() => navigate(`/bench/${bench.id}`)}
-      className={`paper-texture rounded-xl shadow-card card-hover cursor-pointer overflow-hidden fade-in opacity-0 ${staggerClass}`}
+      className={`paper-texture rounded-xl shadow-card card-hover cursor-pointer overflow-hidden fade-in opacity-0 ${staggerClass} ${
+        isDecommissioned ? 'grayscale-[0.4] opacity-80' : ''
+      }`}
     >
       <div className="h-36 bg-gradient-to-br from-warm-cream to-warm-beige relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center">
@@ -64,6 +69,10 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
               有靠背
             </span>
           )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <InspectionBadge bench={bench} />
         </div>
 
         <div className="flex items-center justify-between">

@@ -40,6 +40,9 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-01-15T10:30:00Z',
     updatedAt: '2024-01-20T14:20:00Z',
+    inspectionStatus: 'normal',
+    lastInspectionDate: '2026-08-15',
+    nextInspectionDue: '2026-11-15',
   },
   {
     id: 'bench-002',
@@ -80,6 +83,9 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-02-10T08:15:00Z',
     updatedAt: '2024-02-12T18:30:00Z',
+    inspectionStatus: 'normal',
+    lastInspectionDate: '2026-06-10',
+    nextInspectionDue: '2026-09-10',
   },
   {
     id: 'bench-003',
@@ -106,6 +112,9 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-03-05T16:45:00Z',
     updatedAt: '2024-03-05T16:45:00Z',
+    inspectionStatus: 'needs_repair',
+    lastInspectionDate: '2026-09-01',
+    nextInspectionDue: '2026-10-01',
   },
   {
     id: 'bench-004',
@@ -139,6 +148,9 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-01-28T09:00:00Z',
     updatedAt: '2024-02-05T20:10:00Z',
+    inspectionStatus: 'normal',
+    lastInspectionDate: '2026-09-20',
+    nextInspectionDue: '2026-12-20',
   },
   {
     id: 'bench-005',
@@ -165,6 +177,9 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-03-12T12:30:00Z',
     updatedAt: '2024-03-12T12:30:00Z',
+    inspectionStatus: 'decommissioned',
+    lastInspectionDate: '2026-05-01',
+    nextInspectionDue: null,
   },
   {
     id: 'bench-006',

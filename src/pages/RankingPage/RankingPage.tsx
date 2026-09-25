@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, MapPin, Star, Crown, Medal, Award } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getInspectionStatus } from '@/utils/inspection';
 import { MATERIAL_LABELS, SHADE_LABELS } from '@/types';
 import type { Bench } from '@/types';
 
@@ -16,7 +17,9 @@ export default function RankingPage() {
     }
   }, [initialized, initialize]);
 
-  const rankedBenches = [...benches]
+  // 停用长椅不参与舒适度排行
+  const rankedBenches = benches
+    .filter((bench) => getInspectionStatus(bench) !== 'decommissioned')
     .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
@@ -41,7 +44,7 @@ export default function RankingPage() {
           舒适度排行
         </h2>
         <p className="text-ink-light text-sm">
-          综合评分最高的长椅
+          综合评分最高的长椅（停用长椅不参与排行）
         </p>
       </div>
 

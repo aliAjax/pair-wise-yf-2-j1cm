@@ -14,6 +14,10 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  ClipboardCheck,
+  AlertTriangle,
+  Ban,
+  Save,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -23,16 +27,29 @@ import {
   NOISE_LABELS,
   STAY_DURATION_LABELS,
   TIME_PERIOD_LABELS,
+  INSPECTION_STATUS_LABELS,
 } from '@/types';
-import type { TimePeriodType } from '@/types';
+import type { TimePeriodType, InspectionStatusType } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import InspectionBadge from '@/components/InspectionBadge/InspectionBadge';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import {
+  getInspectionStatus,
+  isInspectionOverdue,
+  formatInspectionDate,
+} from '@/utils/inspection';
 
 export default function BenchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getBenchById, deleteBench, initialize, initialized } = useBenchStore();
+  const { getBenchById, deleteBench, updateBench, initialize, initialized } = useBenchStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingInspection, setEditingInspection] = useState(false);
+  const [inspectionForm, setInspectionForm] = useState<{
+    inspectionStatus: InspectionStatusType;
+    lastInspectionDate: string;
+    nextInspectionDue: string;
+  }>({ inspectionStatus: 'normal', lastInspectionDate: '', nextInspectionDue: '' });
 
   useEffect(() => {
     if (!initialized) {
@@ -61,6 +78,40 @@ export default function BenchDetail() {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+  const inspectionStatus = getInspectionStatus(bench);
+  const isDecommissioned = inspectionStatus === 'decommissioned';
+  const inspectionOverdue = isInspectionOverdue(bench);
+
+  const startEditInspection = () => {
+    setInspectionForm({
+      inspectionStatus: bench.inspectionStatus ?? 'normal',
+      lastInspectionDate: bench.lastInspectionDate ?? '',
+      nextInspectionDue: bench.nextInspectionDue ?? '',
+    });
+    setEditingInspection(true);
+  };
+
+  const handleLastInspectionChange = (value: string) => {
+    setInspectionForm((prev) => {
+      let nextInspectionDue = prev.nextInspectionDue;
+      // 填写检查日期后，若到期日为空则默认建议 90 天后
+      if (value && !nextInspectionDue) {
+        const due = new Date(`${value}T00:00:00`);
+        due.setDate(due.getDate() + 90);
+        nextInspectionDue = due.toISOString().slice(0, 10);
+      }
+      return { ...prev, lastInspectionDate: value, nextInspectionDue };
+    });
+  };
+
+  const handleSaveInspection = () => {
+    updateBench(bench.id, {
+      inspectionStatus: inspectionForm.inspectionStatus,
+      lastInspectionDate: inspectionForm.lastInspectionDate || null,
+      nextInspectionDue: inspectionForm.nextInspectionDue || null,
+    });
+    setEditingInspection(false);
+  };
 
   const timePeriodIcons: Record<TimePeriodType, typeof Sunrise> = {
     morning: Sunrise,
@@ -104,14 +155,26 @@ export default function BenchDetail() {
             </div>
 
             <div className="p-6">
+              {isDecommissioned && (
+                <div className="flex items-start gap-2 p-3 mb-4 bg-ink-light/5 border border-ink-light/10 rounded-lg text-sm text-ink-light">
+                  <Ban className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    该长椅已停用：不再参与舒适度排行，历史体验仍可查看，停用期间不能新增体验记录。
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="font-serif text-2xl font-bold text-deep-brown mb-2">
                     {bench.name}
                   </h1>
-                  <div className="flex items-center gap-1 text-ink-light">
+                  <div className="flex items-center gap-1 text-ink-light mb-2">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
                     <span>{bench.location}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <InspectionBadge bench={bench} showMarkers={false} />
                   </div>
                 </div>
 
@@ -260,6 +323,123 @@ export default function BenchDetail() {
           </div>
 
           <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif text-lg font-semibold text-deep-brown flex items-center gap-2">
+                <ClipboardCheck className="w-5 h-5 text-moss-green" />
+                巡检情况
+              </h2>
+              {!editingInspection && (
+                <button
+                  onClick={startEditInspection}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  更新
+                </button>
+              )}
+            </div>
+
+            {editingInspection ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-ink-light mb-1.5">巡检状态</label>
+                  <select
+                    value={inspectionForm.inspectionStatus}
+                    onChange={(e) =>
+                      setInspectionForm((prev) => ({
+                        ...prev,
+                        inspectionStatus: e.target.value as InspectionStatusType,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm bg-white/50 border border-deep-brown/10 rounded-lg text-deep-brown focus:bg-white cursor-pointer"
+                  >
+                    {Object.entries(INSPECTION_STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-ink-light mb-1.5">检查日期</label>
+                  <input
+                    type="date"
+                    value={inspectionForm.lastInspectionDate}
+                    onChange={(e) => handleLastInspectionChange(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-white/50 border border-deep-brown/10 rounded-lg text-deep-brown focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-ink-light mb-1.5">下次到期日</label>
+                  <input
+                    type="date"
+                    value={inspectionForm.nextInspectionDue}
+                    onChange={(e) =>
+                      setInspectionForm((prev) => ({
+                        ...prev,
+                        nextInspectionDue: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm bg-white/50 border border-deep-brown/10 rounded-lg text-deep-brown focus:bg-white"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setEditingInspection(false)}
+                    className="flex-1 px-4 py-2 text-sm text-deep-brown bg-warm-beige hover:bg-warm-beige/80 rounded-lg transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSaveInspection}
+                    className="flex-1 px-4 py-2 text-sm text-white bg-moss-green hover:bg-moss-light rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Save className="w-4 h-4" />
+                    保存
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <InspectionBadge bench={bench} />
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-ink-light">检查日期</span>
+                    <span className="text-deep-brown">
+                      {formatInspectionDate(bench.lastInspectionDate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-light">下次到期日</span>
+                    <span className={inspectionOverdue ? 'text-red-500 font-medium' : 'text-deep-brown'}>
+                      {formatInspectionDate(bench.nextInspectionDue)}
+                    </span>
+                  </div>
+                </div>
+
+                {inspectionOverdue && (
+                  <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/10 rounded-lg text-xs text-red-500">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>巡检已逾期，请尽快安排检查并更新巡检记录。</span>
+                  </div>
+                )}
+
+                {inspectionStatus === 'pending' && (
+                  <p className="text-xs text-ink-light leading-relaxed">
+                    该档案还没有巡检记录，请安排首次巡检后在此更新。
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-4">
             <h3 className="font-serif text-sm font-semibold text-deep-brown mb-3">
               档案信息
             </h3>

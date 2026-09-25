@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Bench, BenchExperience, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType, StayDurationType } from '@/types';
 import { loadBenches, saveBenches } from '@/utils/storage';
 import { generateId } from '@/utils/comfort';
+import { compareByInspection, getInspectionStatus } from '@/utils/inspection';
 import { mockBenches } from '@/data/mockBenches';
 
 interface BenchState {
@@ -104,6 +105,10 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
   },
 
   addExperience: (benchId, experienceData) => {
+    const target = get().benches.find((bench) => bench.id === benchId);
+    // 停用期间不能新增体验记录
+    if (!target || getInspectionStatus(target) === 'decommissioned') return;
+
     const newExperience: BenchExperience = {
       ...experienceData,
       id: generateId(),
@@ -154,8 +159,8 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
 
   getFilteredBenches: () => {
     const { benches, searchQuery, materialFilter, orientationFilter, shadeFilter, noiseFilter } = get();
-    
-    return benches.filter((bench) => {
+
+    const filtered = benches.filter((bench) => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchName = bench.name.toLowerCase().includes(query);
@@ -163,13 +168,16 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
         const matchReview = bench.review.toLowerCase().includes(query);
         if (!matchName && !matchLocation && !matchReview) return false;
       }
-      
+
       if (materialFilter && bench.material !== materialFilter) return false;
       if (orientationFilter && bench.orientation !== orientationFilter) return false;
       if (shadeFilter && bench.shadeLevel !== shadeFilter) return false;
       if (noiseFilter && bench.noiseLevel !== noiseFilter) return false;
-      
+
       return true;
     });
+
+    // 正常/待巡检在前，待维修靠后，停用垫底；同组内逾期优先
+    return [...filtered].sort(compareByInspection);
   },
 }));
